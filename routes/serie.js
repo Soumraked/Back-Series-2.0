@@ -240,4 +240,19 @@ app.get("/name", (req, res) => {
     });
 });
 
+app.get("/count", (req, res) => {
+  db.collection("series")
+    .get()
+    .then((snapshot) => {
+      let data = 0;
+      snapshot.forEach((doc) => {
+        data++;
+      });
+      res.status(200).json({ count: data });
+    })
+    .catch((err) => {
+      res.status(502).json({ mensaje: err });
+    });
+});
+
 module.exports = app;

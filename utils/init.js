@@ -51,22 +51,29 @@ const AuthAdmin = (req, res, next) => {
         const jwtDecode = require("jwt-decode");
         const decoded = jwtDecode(idToken);
         req.user = decoded;
-        return db
-          .collection("users")
-          .where("userId", "==", decoded.user_id)
-          .where("rol", "==", "admin")
-          .limit(1)
-          .get()
-          .then((data) => {
-            if (data._size === 0) {
-              return res.status(400).json({ error: "Unauthorized" });
-            }
-            req.user.handle = data.docs[0].data().handle;
-            return next();
-          })
-          .catch((err) => {
-            return res.status(400).json(err);
-          });
+        const oneDayInSeconds = 86400;
+        const duration = oneDayInSeconds * 3; //three days duration
+        //decoded auth time are seconds, Date now miliseconds
+        if ((decoded.auth_time + duration) * 1000 < Date.now()) {
+          return res.status(401).json({ message: "Token expired" });
+        } else {
+          return db
+            .collection("users")
+            .where("userId", "==", decoded.user_id)
+            .where("rol", "==", "admin")
+            .limit(1)
+            .get()
+            .then((data) => {
+              if (data._size === 0) {
+                return res.status(400).json({ error: "Unauthorized" });
+              }
+              req.user.handle = data.docs[0].data().handle;
+              return next();
+            })
+            .catch((err) => {
+              return res.status(400).json(err);
+            });
+        }
       } else {
         return res.status(400).json(err);
       }

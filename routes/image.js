@@ -12,7 +12,7 @@ var config = {
   measurementId: "G-TP69EP3QE8",
 };
 
-const { admin, AuthAdmin } = require("../utils/init");
+const { admin, db, AuthAdmin } = require("../utils/init");
 
 app.post("/upload/:folder/:name", AuthAdmin, (req, res) => {
   const BusBoy = require("busboy");
@@ -51,7 +51,20 @@ app.post("/upload/:folder/:name", AuthAdmin, (req, res) => {
       })
       .then(() => {
         const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${req.params.folder}%2F${imageFileName}?alt=media`;
-        return res.status(200).json({ url: imageUrl });
+        db.doc(`/series/${req.params.folder}`)
+          .get()
+          .then((doc) => {
+            if (doc.exists) {
+              let image = {};
+              image[req.params.name] = imageUrl;
+              db.doc(`/series/${req.params.folder}`).update(image);
+              return res.status(200).json({ message: "Image save" });
+            } else {
+              return res
+                .status(200)
+                .json({ message: "Don't save image un db.", url: imageUrl });
+            }
+          });
       })
       .catch((err) => {
         console.log(err);
